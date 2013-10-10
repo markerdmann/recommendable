@@ -15,26 +15,26 @@ module Recommendable
           user_id = user_id.to_s
           other_user_id = other_user_id.to_s
 
-          similarity = liked_count = disliked_count = 0
+          similarity = gemd_count = disgemd_count = 0
           in_common = Recommendable.config.ratable_classes.each do |klass|
-            liked_set = Recommendable::Helpers::RedisKeyMapper.liked_set_for(klass, user_id)
-            other_liked_set = Recommendable::Helpers::RedisKeyMapper.liked_set_for(klass, other_user_id)
-            disliked_set = Recommendable::Helpers::RedisKeyMapper.disliked_set_for(klass, user_id)
-            other_disliked_set = Recommendable::Helpers::RedisKeyMapper.disliked_set_for(klass, other_user_id)
+            gemd_set = Recommendable::Helpers::RedisKeyMapper.gemd_set_for(klass, user_id)
+            other_gemd_set = Recommendable::Helpers::RedisKeyMapper.gemd_set_for(klass, other_user_id)
+            disgemd_set = Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(klass, user_id)
+            other_disgemd_set = Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(klass, other_user_id)
 
             # Agreements
-            similarity += Recommendable.redis.sinter(liked_set, other_liked_set).size
-            similarity += Recommendable.redis.sinter(disliked_set, other_disliked_set).size
+            similarity += Recommendable.redis.sinter(gemd_set, other_gemd_set).size
+            similarity += Recommendable.redis.sinter(disgemd_set, other_disgemd_set).size
 
             # Disagreements
-            similarity -= Recommendable.redis.sinter(liked_set, other_disliked_set).size
-            similarity -= Recommendable.redis.sinter(disliked_set, other_liked_set).size
+            similarity -= Recommendable.redis.sinter(gemd_set, other_disgemd_set).size
+            similarity -= Recommendable.redis.sinter(disgemd_set, other_gemd_set).size
 
-            liked_count += Recommendable.redis.scard(liked_set)
-            disliked_count += Recommendable.redis.scard(disliked_set)
+            gemd_count += Recommendable.redis.scard(gemd_set)
+            disgemd_count += Recommendable.redis.scard(disgemd_set)
           end
 
-          similarity / (liked_count + disliked_count).to_f
+          similarity / (gemd_count + disgemd_count).to_f
         end
 
         # Used internally to update the similarity values between this user and all
@@ -46,17 +46,17 @@ module Recommendable
           # Only calculate similarities for users who have rated the items that
           # this user has rated
           relevant_user_ids = Recommendable.config.ratable_classes.inject([]) do |memo, klass|
-            liked_set = Recommendable::Helpers::RedisKeyMapper.liked_set_for(klass, user_id)
-            disliked_set = Recommendable::Helpers::RedisKeyMapper.disliked_set_for(klass, user_id)
+            gemd_set = Recommendable::Helpers::RedisKeyMapper.gemd_set_for(klass, user_id)
+            disgemd_set = Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(klass, user_id)
 
-            item_ids = Recommendable.redis.sunion(liked_set, disliked_set)
+            item_ids = Recommendable.redis.sunion(gemd_set, disgemd_set)
 
             unless item_ids.empty?
               sets = item_ids.map do |id|
-                liked_by_set = Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(klass, id)
-                disliked_by_set = Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(klass, id)
+                gemd_by_set = Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(klass, id)
+                disgemd_by_set = Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(klass, id)
 
-                [liked_by_set, disliked_by_set]
+                [gemd_by_set, disgemd_by_set]
               end
 
               memo | Recommendable.redis.sunion(*sets.flatten)
@@ -90,8 +90,8 @@ module Recommendable
           nearest_neighbors = Recommendable.config.nearest_neighbors || Recommendable.config.user_class.count
           Recommendable.config.ratable_classes.each do |klass|
             rated_sets = [
-              Recommendable::Helpers::RedisKeyMapper.liked_set_for(klass, user_id),
-              Recommendable::Helpers::RedisKeyMapper.disliked_set_for(klass, user_id),
+              Recommendable::Helpers::RedisKeyMapper.gemd_set_for(klass, user_id),
+              Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(klass, user_id),
               Recommendable::Helpers::RedisKeyMapper.hidden_set_for(klass, user_id),
               Recommendable::Helpers::RedisKeyMapper.bookmarked_set_for(klass, user_id)
             ]
@@ -101,14 +101,14 @@ module Recommendable
             most_similar_user_ids = Recommendable.redis.zrevrange(similarity_set, 0, nearest_neighbors - 1)
             least_similar_user_ids = Recommendable.redis.zrange(similarity_set, 0, nearest_neighbors - 1)
 
-            # Get likes from the most similar users
+            # Get gems from the most similar users
             sets_to_union = most_similar_user_ids.inject([]) do |sets, id|
-              sets << Recommendable::Helpers::RedisKeyMapper.liked_set_for(klass, id)
+              sets << Recommendable::Helpers::RedisKeyMapper.gemd_set_for(klass, id)
             end
 
-            # Get dislikes from the least similar users
+            # Get disgems from the least similar users
             least_similar_user_ids.inject(sets_to_union) do |sets, id|
-              sets << Recommendable::Helpers::RedisKeyMapper.disliked_set_for(klass, id)
+              sets << Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(klass, id)
             end
 
             return if sets_to_union.empty?
@@ -132,51 +132,51 @@ module Recommendable
           true
         end
 
-        # Predict how likely it is that a user will like an item. This probability
-        # is not based on percentage. 0.0 indicates that the user will neither like
-        # nor dislike the item. Values that approach Infinity indicate a rising
-        # likelihood of liking the item while values approaching -Infinity
+        # Predict how gemly it is that a user will gem an item. This probability
+        # is not based on percentage. 0.0 indicates that the user will neither gem
+        # nor disgem the item. Values that approach Infinity indicate a rising
+        # gemlihood of liking the item while values approaching -Infinity
         # indicate a rising probability of disliking the item.
         #
         # @param [Fixnum, String] user_id the user's ID
         # @param [Class] klass the item's class
         # @param [Fixnum, String] item_id the item's ID
-        # @return [Float] the probability that the user will like the item
+        # @return [Float] the probability that the user will gem the item
         def predict_for(user_id, klass, item_id)
           user_id = user_id.to_s
           item_id = item_id.to_s
 
           similarity_set = Recommendable::Helpers::RedisKeyMapper.similarity_set_for(user_id)
-          liked_by_set = Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(klass, item_id)
-          disliked_by_set = Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(klass, item_id)
+          gemd_by_set = Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(klass, item_id)
+          disgemd_by_set = Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(klass, item_id)
           similarity_sum = 0.0
 
-          similarity_sum += Recommendable.redis.smembers(liked_by_set).inject(0) do |memo, id|
+          similarity_sum += Recommendable.redis.smembers(gemd_by_set).inject(0) do |memo, id|
             memo += Recommendable.redis.zscore(similarity_set, id).to_f
           end
 
-          similarity_sum += Recommendable.redis.smembers(disliked_by_set).inject(0) do |memo, id|
+          similarity_sum += Recommendable.redis.smembers(disgemd_by_set).inject(0) do |memo, id|
             memo -= Recommendable.redis.zscore(similarity_set, id).to_f
           end
 
-          liked_by_count = Recommendable.redis.scard(liked_by_set)
-          disliked_by_count = Recommendable.redis.scard(disliked_by_set)
-          prediction = similarity_sum / (liked_by_count + disliked_by_count).to_f
+          gemd_by_count = Recommendable.redis.scard(gemd_by_set)
+          disgemd_by_count = Recommendable.redis.scard(disgemd_by_set)
+          prediction = similarity_sum / (gemd_by_count + disgemd_by_count).to_f
           prediction.finite? ? prediction : 0.0
         end
 
         def update_score_for(klass, id)
           score_set = Recommendable::Helpers::RedisKeyMapper.score_set_for(klass)
-          liked_by_set = Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(klass, id)
-          disliked_by_set = Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(klass, id)
-          liked_by_count = Recommendable.redis.scard(liked_by_set)
-          disliked_by_count = Recommendable.redis.scard(disliked_by_set)
+          gemd_by_set = Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(klass, id)
+          disgemd_by_set = Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(klass, id)
+          gemd_by_count = Recommendable.redis.scard(gemd_by_set)
+          disgemd_by_count = Recommendable.redis.scard(disgemd_by_set)
 
-          return 0.0 unless liked_by_count + disliked_by_count > 0
+          return 0.0 unless gemd_by_count + disgemd_by_count > 0
 
           z = 1.96
-          n = liked_by_count + disliked_by_count
-          phat = liked_by_count / n.to_f
+          n = gemd_by_count + disgemd_by_count
+          phat = gemd_by_count / n.to_f
 
           begin
             score = (phat + z*z/(2*n) - z * Math.sqrt((phat*(1-phat)+z*z/(4*n))/n))/(1+z*z/n)

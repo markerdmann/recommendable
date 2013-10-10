@@ -1,6 +1,6 @@
 # Recommendable [![Build Status](https://travis-ci.org/davidcelis/recommendable.png?branch=master)](https://travis-ci.org/davidcelis/recommendable)
 
-Recommendable is a gem that allows you to quickly add a recommendation engine for Likes and Dislikes to your Ruby application using my version of [Jaccardian similarity and memory-based collaborative filtering][collaborative filtering].
+Recommendable is a gem that allows you to quickly add a recommendation engine for Gems and Disgems to your Ruby application using my version of [Jaccardian similarity and memory-based collaborative filtering][collaborative filtering].
 
 ## Requirements
 
@@ -37,7 +37,7 @@ Recommendable.configure do |config|
   config.redis_namespace = :recommendable
 
   # Whether or not to automatically enqueue users to have their recommendations
-  # refreshed after they like/dislike an item.
+  # refreshed after they gem/disgem an item.
   #
   # Default: true
   config.auto_enqueue = true
@@ -50,7 +50,7 @@ Recommendable.configure do |config|
   # Default: nil
   config.nearest_neighbors = nil
 
-  # Like kNN, but also uses some number of most dissimilar users when
+  # Gem kNN, but also uses some number of most dissimilar users when
   # updating recommendations for a user. Because, hey, disagreements are
   # just as important as agreements, right? If `nearest_neighbors` is set to
   # `nil`, this configuration is ignored. Set this to a lower number
@@ -162,7 +162,7 @@ further details.
 [torquebox]: https://github.com/torquebox/torquebox
 [forking]: http://help.github.com/forking/
 [pull requests]: http://help.github.com/pull-requests/
-[collaborative filtering]: http://davidcelis.com/blog/2012/02/07/collaborative-filtering-with-likes-and-dislikes/
+[collaborative filtering]: http://davidcelis.com/blog/2012/02/07/collaborative-filtering-with-gems-and-disgems/
 [recommendable]: http://davidcelis.github.com/recommendable/
 [documentation]: http://rubydoc.info/gems/recommendable/frames
 [gittip]: http://gittip.com/davidcelis/

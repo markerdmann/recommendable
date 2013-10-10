@@ -9,7 +9,7 @@ module Recommendable
       # @raise [ArgumentError] if the passed object was not declared ratable
       def hide(obj)
         raise(ArgumentError, 'Object has not been declared ratable.') unless obj.respond_to?(:recommendable?) && obj.recommendable?
-        return if likes?(obj) || dislikes?(obj) || bookmarks?(obj) || hides?(obj)
+        return if gems?(obj) || disgems?(obj) || bookmarks?(obj) || hides?(obj)
 
         run_hook(:before_hide, obj)
         Recommendable.redis.sadd(Recommendable::Helpers::RedisKeyMapper.hidden_set_for(obj.class, id), obj.id)

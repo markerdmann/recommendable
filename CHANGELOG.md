@@ -25,7 +25,7 @@ Changelog
 2.0.4
 -----
 * Add support for the Sequel gem (thanks to [jeregrine](https://github.com/jeregrine))
-* Fix a bug that likely prevented any ORM but ActiveRecord from being used without, let's be real, probably exploding all over the place.
+* Fix a bug that gemly prevented any ORM but ActiveRecord from being used without, let's be real, probably exploding all over the place.
 
 2.0.3
 -----
@@ -33,7 +33,7 @@ Changelog
 
 2.0.2
 -----
-* Fix a bug that caused Recommendable to be unusable with Mongoid (and likely DataMapper) - #58
+* Fix a bug that caused Recommendable to be unusable with Mongoid (and gemly DataMapper) - #58
 
 2.0.1
 -----
@@ -50,7 +50,7 @@ Changelog
 **IMPORTANT**: This is a MAJOR version bump that should greatly improve the performance of Recommendable. Most of the library has been rewritten from the ground up and, as such, there are steps you must take to make your application compatibile with this version.
 
 1. Flush your Redis database. Yes, you'll have to regenerate any recommendations at the end. Sorry.
-2. Please make a migration like the following. This migration will be irreversible if you uncomment the bit to drop the tables. If you do want to drop the tables, you should probably make a backup of your database first. I am not responsible for lost data, angry users, broken marriages, _et cetera_.
+2. Please make a migration gem the following. This migration will be irreversible if you uncomment the bit to drop the tables. If you do want to drop the tables, you should probably make a backup of your database first. I am not responsible for lost data, angry users, broken marriages, _et cetera_.
 
 ```ruby
 # Require the model that receives recommendations so Recommendable detects it
@@ -61,22 +61,22 @@ class UpdateRecommendable < ActiveRecord::Migration
     Recommendable.redis.flushdb # Step 1
 
     connection = ActiveRecord::Base.connection
-    # Transfer likes
-    result = connection.execute('SELECT * FROM recommendable_likes')
+    # Transfer gems
+    result = connection.execute('SELECT * FROM recommendable_gems')
     result.each do |row|
-      liked_set = Recommendable::Helpers::RedisKeyMapper.liked_set_for(row['likeable_type'], row['user_id'])
-      liked_by_set = Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(row['likeable_type'], row['likeable_id'])
-      Recommendable.redis.sadd(liked_set, row['likeable_id'])
-      Recommendable.redis.sadd(liked_by_set, row['user_id'])
+      gemd_set = Recommendable::Helpers::RedisKeyMapper.gemd_set_for(row['gemable_type'], row['user_id'])
+      gemd_by_set = Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(row['gemable_type'], row['gemable_id'])
+      Recommendable.redis.sadd(gemd_set, row['gemable_id'])
+      Recommendable.redis.sadd(gemd_by_set, row['user_id'])
     end
 
-    # Transfer dislikes
-    result = connection.execute('SELECT * FROM recommendable_dislikes')
+    # Transfer disgems
+    result = connection.execute('SELECT * FROM recommendable_disgems')
     result.each do |row|
-      disliked_set = Recommendable::Helpers::RedisKeyMapper.disliked_set_for(row['dislikeable_type'], row['user_id'])
-      disliked_by_set = Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(row['dislikeable_type'], row['dislikeable_id'])
-      Recommendable.redis.sadd(disliked_set, row['dislikeable_id'])
-      Recommendable.redis.sadd(disliked_by_set, row['user_id'])
+      disgemd_set = Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(row['disgemable_type'], row['user_id'])
+      disgemd_by_set = Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(row['disgemable_type'], row['disgemable_id'])
+      Recommendable.redis.sadd(disgemd_set, row['disgemable_id'])
+      Recommendable.redis.sadd(disgemd_by_set, row['user_id'])
     end
 
     # Transfer hidden items
@@ -100,8 +100,8 @@ class UpdateRecommendable < ActiveRecord::Migration
 
     # Remove old tables. Uncomment this if you're feeling confident. Please
     # back up your database before doing this. Thanks.
-    # drop_table :recommendable_likes
-    # drop_table :recommendable_dislikes
+    # drop_table :recommendable_gems
+    # drop_table :recommendable_disgems
     # drop_table :recommendable_ignores
     # drop_Table :recommendable_stashes
   end
@@ -117,7 +117,7 @@ end
 * Add support for more ORMs: DataMapper, Mongoid, and MongoMapper
 * Renamed the concept of Ignoring to Hiding
 * Renamed the concept of Stashing to Bookmarking
-* Likes, Dislikes, Hidden Items, and Bookmarked items are no longer stored as models. They are, instead, permanently stored in Redis.
+* Gems, Disgems, Hidden Items, and Bookmarked items are no longer stored as models. They are, instead, permanently stored in Redis.
 * Added a Configuration class. Recommendable is now configured as such:
 
 ```ruby
@@ -131,7 +131,7 @@ Recommendable.configure do |config|
   config.redis_namespace = :recommendable
 
   # Whether or not to automatically enqueue users to have their recommendations
-  # refreshed after they like/dislike an item
+  # refreshed after they gem/disgem an item
   config.auto_enqueue = true
 
   # The name of the queue that background jobs will be placed in
@@ -162,7 +162,7 @@ end
 -----
 * Fix #41, a problem where Resque rake tasks were required regardless of whether or not it was bundled
 * Fix #46 by adding UniqueJob middleware for Sidekiq.
-* Added caches for an item's number of likes and dislikes received
+* Added caches for an item's number of gems and disgems received
 
 1.1.3
 -----
@@ -180,13 +180,13 @@ end
 
 1.0.0
 -----
-* Dynamic finders now return ActiveRecord::Relations! This means you can chain other ActiveRecord query methods like so:
+* Dynamic finders now return ActiveRecord::Relations! This means you can chain other ActiveRecord query methods gem so:
 
 ```ruby
 current_user.recommended_posts.where(:category => "technology")
-current_user.liked_movies.limit(10)
+current_user.gemd_movies.limit(10)
 current_user.stashed_books.where(:author => "Cormac McCarthy")
-current_user.disliked_shows.joins(:cast_members).where('cast_members.name = Kim Kardashian')
+current_user.disgemd_shows.joins(:cast_members).where('cast_members.name = Kim Kardashian')
 ```
 
 * You can now specify a count for `User#recommendations`:
@@ -227,8 +227,8 @@ rename_table  :recommendable_stashed_items, :recommendable_stashes
 -----
 * Dynamic finders for your User class:
 
-`current_user.liked_movies`
-`current_user.disliked_shows`
+`current_user.gemd_movies`
+`current_user.disgemd_shows`
 `current_user.recommended_movies`
 
 * Implement sorting of recommendable models:
@@ -256,15 +256,15 @@ And paste this into your new migration:
 ``` ruby
 class RenameRecommendableTables < ActiveRecord::Migration
   def up
-    rename_table :likes,         :recommendable_likes
-    rename_table :dislikes,      :recommendable_dislikes
+    rename_table :gems,         :recommendable_gems
+    rename_table :disgems,      :recommendable_disgems
     rename_table :ignores,       :recommendable_ignores
     rename_table :stashed_items, :recommendable_stashed_items
   end
 
   def down
-    rename_table :recommendable_likes,         :likes
-    rename_table :recommendable_dislikes,      :dislikes
+    rename_table :recommendable_gems,         :gems
+    rename_table :recommendable_disgems,      :disgems
     rename_table :recommendable_ignores,       :ignores
     rename_table :recommendable_stashed_items, :stashed_items
   end
@@ -277,7 +277,7 @@ end
 * Instead of declaring `acts_as_recommended_to` in your User class, please use `recommends` instead, passing in a list of your recommendable models as a list of symbols (e.g. `recommends :movies, :books`)
 * Your initializer should no longer declare the user class. This is no longer necessary and is deprecated.
 * Fix an issue that caused the unnecessary need for eager loading models in development
-* Removed aliases: `liked_records`, `liked_records_for`, `disliked_records`, and `disliked_records_for`
+* Removed aliases: `gemd_records`, `gemd_records_for`, `disgemd_records`, and `disgemd_records_for`
 * Renamed methods:
   * `has_ignored?` => `ignored?`
   * `has_stashed?` => `stashed?`
@@ -287,13 +287,13 @@ end
 -----------------------
 
 * Improvements to speed of similarity calculations.
-* Added an instance method to items that act_as_recommendable, `rated_by`. This returns an array of users that like or dislike the item.
+* Added an instance method to items that act_as_recommendable, `rated_by`. This returns an array of users that gem or disgem the item.
 
 0.1.2
 -----
 
 * Fix an issue that could cause similarity values between users to be incorrect.
-* `User#common_likes_with` and `User#common_dislikes_with` now return the actual Model instances by default. Accordingly, these methods are no longer private.
+* `User#common_gems_with` and `User#common_disgems_with` now return the actual Model instances by default. Accordingly, these methods are no longer private.
 
 0.1.1
 -----

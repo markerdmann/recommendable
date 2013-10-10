@@ -8,28 +8,28 @@ class RecommenderTest < MiniTest::Unit::TestCase
     10.times { |x| instance_variable_set(:"@movie#{x+1}", Factory(:movie)) }
     10.times { |x| instance_variable_set(:"@book#{x+1}",  Factory(:book))  }
 
-    [@movie1, @movie2, @movie3, @book4, @book5, @book6].each { |obj| @user.like(obj) }
-    [@book1, @book2, @book3, @movie4, @movie5, @movie6].each { |obj| @user.dislike(obj) }
+    [@movie1, @movie2, @movie3, @book4, @book5, @book6].each { |obj| @user.gem(obj) }
+    [@book1, @book2, @book3, @movie4, @movie5, @movie6].each { |obj| @user.disgem(obj) }
 
     # @user.similarity_with(@user2) should ==  1.0
-    [@movie1, @movie2, @movie3, @book4, @book5, @book6, @book7, @book8, @movie9, @movie10].each { |obj| @user2.like(obj) }
-    [@book1, @book2, @book3, @movie4, @movie5, @movie6, @movie8, @movie8, @book9, @book10].each { |obj| @user2.dislike(obj) }
+    [@movie1, @movie2, @movie3, @book4, @book5, @book6, @book7, @book8, @movie9, @movie10].each { |obj| @user2.gem(obj) }
+    [@book1, @book2, @book3, @movie4, @movie5, @movie6, @movie8, @movie8, @book9, @book10].each { |obj| @user2.disgem(obj) }
 
     # @user.similarity_with(@user4) should ==  0.25
-    [@movie1, @movie2, @movie3, @book4, @book5, @book6].each { |obj| @user4.like(obj) }
-    [@book1, @book2, @book3].each { |obj| @user4.like(obj) }
+    [@movie1, @movie2, @movie3, @book4, @book5, @book6].each { |obj| @user4.gem(obj) }
+    [@book1, @book2, @book3].each { |obj| @user4.gem(obj) }
 
     # @user.similarity_with(@user3) should ==  0.0
-    [@movie1, @movie2, @movie3].each { |obj| @user3.like(obj) }
-    [@book1, @book2, @book3].each { |obj| @user3.like(obj) }
+    [@movie1, @movie2, @movie3].each { |obj| @user3.gem(obj) }
+    [@book1, @book2, @book3].each { |obj| @user3.gem(obj) }
 
     # @user.similarity_with(@user1) should == -0.25
-    [@movie1, @movie2, @movie3].each { |obj| @user1.like(obj) }
-    [@book1, @book2, @book3, @movie4, @movie5, @movie6].each { |obj| @user1.like(obj) }
+    [@movie1, @movie2, @movie3].each { |obj| @user1.gem(obj) }
+    [@book1, @book2, @book3, @movie4, @movie5, @movie6].each { |obj| @user1.gem(obj) }
 
     # @user.similarity_with(@user5) should == -1.0
-    [@movie1, @movie2, @movie3, @book4, @book5, @book6].each { |obj| @user5.dislike(obj) }
-    [@book1, @book2, @book3, @movie4, @movie5, @movie6].each { |obj| @user5.like(obj) }
+    [@movie1, @movie2, @movie3, @book4, @book5, @book6].each { |obj| @user5.disgem(obj) }
+    [@book1, @book2, @book3, @movie4, @movie5, @movie6].each { |obj| @user5.gem(obj) }
 
     Recommendable::Helpers::Calculations.update_similarities_for(@user.id)
     Recommendable::Helpers::Calculations.update_recommendations_for(@user.id)
@@ -59,10 +59,10 @@ class RecommenderTest < MiniTest::Unit::TestCase
     @user.bookmark(@book9)
 
     sets = [
-      @user.liked_movie_ids,
-      @user.disliked_movie_ids,
-      @user.liked_book_ids,
-      @user.disliked_book_ids,
+      @user.gemd_movie_ids,
+      @user.disgemd_movie_ids,
+      @user.gemd_book_ids,
+      @user.disgemd_book_ids,
       @user.hidden_movie_ids,
       @user.hidden_book_ids,
       @user.bookmarked_movie_ids,
@@ -76,10 +76,10 @@ class RecommenderTest < MiniTest::Unit::TestCase
     assert_includes @user2.similar_raters(5), @user
 
     redis_sets = [
-      Recommendable::Helpers::RedisKeyMapper.liked_set_for(Movie, @user.id),
-      Recommendable::Helpers::RedisKeyMapper.liked_set_for(Book, @user.id),
-      Recommendable::Helpers::RedisKeyMapper.disliked_set_for(Movie, @user.id),
-      Recommendable::Helpers::RedisKeyMapper.disliked_set_for(Book, @user.id),
+      Recommendable::Helpers::RedisKeyMapper.gemd_set_for(Movie, @user.id),
+      Recommendable::Helpers::RedisKeyMapper.gemd_set_for(Book, @user.id),
+      Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(Movie, @user.id),
+      Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(Book, @user.id),
       Recommendable::Helpers::RedisKeyMapper.hidden_set_for(Movie, @user.id),
       Recommendable::Helpers::RedisKeyMapper.hidden_set_for(Book, @user.id),
       Recommendable::Helpers::RedisKeyMapper.bookmarked_set_for(Movie, @user.id),
@@ -99,11 +99,11 @@ class RecommenderTest < MiniTest::Unit::TestCase
     redis_zsets.each { |zset| assert_equal Recommendable.redis.zcard(zset), 0 }
 
     [@movie1, @movie2, @movie3, @book4, @book5, @book6].each do |obj|
-      refute_includes obj.liked_by_ids, id.to_s
+      refute_includes obj.gemd_by_ids, id.to_s
     end
 
     [@book1, @book2, @book3, @movie4, @movie5, @movie6].each do |obj|
-      refute_includes obj.disliked_by_ids, id.to_s
+      refute_includes obj.disgemd_by_ids, id.to_s
     end
 
     refute_includes @user2.similar_raters(5).map(&:id), id

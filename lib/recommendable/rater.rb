@@ -1,5 +1,5 @@
-require 'recommendable/rater/liker'
-require 'recommendable/rater/disliker'
+require 'recommendable/rater/gemr'
+require 'recommendable/rater/disgemr'
 require 'recommendable/rater/hider'
 require 'recommendable/rater/bookmarker'
 require 'recommendable/rater/recommender'
@@ -19,8 +19,8 @@ module Recommendable
         things.each { |thing| thing.to_s.classify.constantize.make_recommendable! }
 
         class_eval do
-          include Liker
-          include Disliker
+          include Gemr
+          include Disgemr
           include Hider
           include Bookmarker
           include Recommender
@@ -43,45 +43,45 @@ module Recommendable
             warn "Model #{self} is not using a supported ORM. You must handle removal from Redis manually when destroying instances."
           end
 
-          define_hooks :before_like,     :after_like,     :before_unlike,     :after_unlike,
-                       :before_dislike,  :after_dislike,  :before_undislike,  :after_undislike,
+          define_hooks :before_gem,     :after_gem,     :before_ungem,     :after_ungem,
+                       :before_disgem,  :after_disgem,  :before_undisgem,  :after_undisgem,
                        :before_hide,     :after_hide,     :before_unhide,     :after_unhide,
                        :before_bookmark, :after_bookmark, :before_unbookmark, :after_unbookmark
 
-          before_like    lambda { |obj| undislike(obj) || unhide(obj) }
-          before_dislike lambda { |obj| unlike(obj)    || unhide(obj) }
+          before_gem    lambda { |obj| undisgem(obj) || unhide(obj) }
+          before_disgem lambda { |obj| ungem(obj)    || unhide(obj) }
 
-          %w[like unlike dislike undislike].each do |action|
+          %w[gem ungem disgem undisgem].each do |action|
             send("after_#{action}", lambda { |obj|
               Recommendable::Helpers::Calculations.update_score_for(obj.class, obj.id)
               Recommendable.enqueue(self.id) if Recommendable.config.auto_enqueue
             })
           end
 
-          %w[like dislike hide bookmark].each do |action|
+          %w[gem disgem hide bookmark].each do |action|
             send("after_#{action}", lambda { |obj| unrecommend(obj) })
           end
 
           def method_missing(method, *args, &block)
-            if method.to_s =~ /\A((?:dis)?liked|hidden|bookmarked)_(.+)_in_common_with\z/
+            if method.to_s =~ /\A((?:dis)?gemd|hidden|bookmarked)_(.+)_in_common_with\z/
               begin
                 send("#{$1}_in_common_with", $2.classify.constantize, *args)
               rescue NameError
                 super
               end
-            elsif method.to_s =~ /\A((?:dis)?liked|hidden|bookmarked)_(.+)_count\z/
+            elsif method.to_s =~ /\A((?:dis)?gemd|hidden|bookmarked)_(.+)_count\z/
               begin
                 send("#{$1}_count_for", $2.classify.constantize, *args)
               rescue NameError
                 super
               end
-            elsif method.to_s =~ /\A((?:dis)?liked|hidden|bookmarked)_(.+)_ids\z/
+            elsif method.to_s =~ /\A((?:dis)?gemd|hidden|bookmarked)_(.+)_ids\z/
               begin
                 send("#{$1}_ids_for", $2.classify.constantize, *args)
               rescue NameError
                 super
               end
-            elsif method.to_s =~ /\A((?:dis)?liked|hidden|bookmarked|recommended)_(.+)\z/
+            elsif method.to_s =~ /\A((?:dis)?gemd|hidden|bookmarked|recommended)_(.+)\z/
               begin
                 send("#{$1}_for", $2.classify.constantize, *args)
               rescue NameError
@@ -93,9 +93,9 @@ module Recommendable
           end
 
           def respond_to?(method, include_private = false)
-            if method.to_s =~ /\A((?:dis)?liked|hidden|bookmarked)_(.+)_in_common_with\z/ ||
-               method.to_s =~ /\A((?:dis)?liked|hidden|bookmarked)_(.+)_ids\z/ ||
-               method.to_s =~ /\A((?:dis)?liked|hidden|bookmarked|recommended)_(.+)\z/
+            if method.to_s =~ /\A((?:dis)?gemd|hidden|bookmarked)_(.+)_in_common_with\z/ ||
+               method.to_s =~ /\A((?:dis)?gemd|hidden|bookmarked)_(.+)_ids\z/ ||
+               method.to_s =~ /\A((?:dis)?gemd|hidden|bookmarked|recommended)_(.+)\z/
               begin
                 true if $2.classify.constantize.recommendable?
               rescue NameError
@@ -107,15 +107,15 @@ module Recommendable
           end
 
           def rated?(obj)
-            likes?(obj) || dislikes?(obj)
+            gems?(obj) || disgems?(obj)
           end
 
           def rated_anything?
-            likes_count > 0 || dislikes_count > 0
+            gems_count > 0 || disgems_count > 0
           end
 
           def unrate(obj)
-            unlike(obj) || undislike(obj) || unhide(obj)
+            ungem(obj) || undisgem(obj) || unhide(obj)
             unbookmark(obj)
           end
         end

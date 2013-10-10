@@ -20,7 +20,7 @@ class RatableTest < MiniTest::Unit::TestCase
   def test_rated_predicate_works
     refute @movie.rated?
     user = Factory(:user)
-    user.like(@movie)
+    user.gem(@movie)
     assert @movie.rated?
   end
 
@@ -30,10 +30,10 @@ class RatableTest < MiniTest::Unit::TestCase
     @user = Factory(:user)
     @friend = Factory(:user)
 
-    @user.like(@book2)
-    @friend.like(@book2)
-    @user.like(@book3)
-    @user.dislike(@book)
+    @user.gem(@book2)
+    @friend.gem(@book2)
+    @user.gem(@book3)
+    @user.disgem(@book)
 
     top = Book.top(3)
     assert_equal top[0], @book2
@@ -45,28 +45,28 @@ class RatableTest < MiniTest::Unit::TestCase
     @user = Factory(:user)
     @friend = Factory(:user)
     @buddy = Factory(:user)
-    @user.like(@movie)
-    @friend.dislike(@movie)
-    @user.dislike(@book)
-    @friend.like(@book)
+    @user.gem(@movie)
+    @friend.disgem(@movie)
+    @user.disgem(@book)
+    @friend.gem(@book)
     @buddy.hide(@movie)
     @buddy.bookmark(@book)
 
-    liked_by_sets = [@movie, @book].map { |obj| Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(obj.class, obj.id) }
-    disliked_by_sets = [@movie, @book].map { |obj| Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(obj.class, obj.id) }
-    [liked_by_sets, disliked_by_sets].flatten.each { |set| assert_equal Recommendable.redis.scard(set), 1 }
+    gemd_by_sets = [@movie, @book].map { |obj| Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(obj.class, obj.id) }
+    disgemd_by_sets = [@movie, @book].map { |obj| Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(obj.class, obj.id) }
+    [gemd_by_sets, disgemd_by_sets].flatten.each { |set| assert_equal Recommendable.redis.scard(set), 1 }
 
-    assert @user.likes?(@movie)
-    assert @user.dislikes?(@book)
-    assert @friend.likes?(@book)
-    assert @friend.dislikes?(@movie)
+    assert @user.gems?(@movie)
+    assert @user.disgems?(@book)
+    assert @friend.gems?(@book)
+    assert @friend.disgems?(@movie)
     assert @buddy.hides?(@movie)
     assert @buddy.bookmarks?(@book)
 
     @movie.destroy
     @book.destroy
 
-    [liked_by_sets, disliked_by_sets].flatten.each { |set| assert_equal Recommendable.redis.scard(set), 0 }
+    [gemd_by_sets, disgemd_by_sets].flatten.each { |set| assert_equal Recommendable.redis.scard(set), 0 }
 
     assert_empty @buddy.hidden_movies
     assert_empty @buddy.bookmarked_books

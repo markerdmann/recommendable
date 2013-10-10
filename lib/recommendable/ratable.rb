@@ -1,5 +1,5 @@
-require 'recommendable/ratable/likable'
-require 'recommendable/ratable/dislikable'
+require 'recommendable/ratable/gemable'
+require 'recommendable/ratable/disgemable'
 
 module Recommendable
   module Ratable
@@ -12,8 +12,8 @@ module Recommendable
         Recommendable.configure { |config| config.ratable_classes << self }
 
         class_eval do
-          include Likable
-          include Dislikable
+          include Gemable
+          include Disgemable
           
           case
           when defined?(Sequel::Model) && ancestors.include?(Sequel::Model)
@@ -34,11 +34,11 @@ module Recommendable
           # @return true if a user class `recommends :this`
           def self.recommendable?() true end
 
-          # Check to see if anybody has rated (liked or disliked) this object
+          # Check to see if anybody has rated (gemd or disgemd) this object
           #
-          # @return true if anybody has liked/disliked this
+          # @return true if anybody has gemd/disgemd this
           def rated?
-            liked_by_count > 0 || disliked_by_count > 0
+            gemd_by_count > 0 || disgemd_by_count > 0
           end
 
           # Query for the top-N items sorted by score
@@ -63,12 +63,12 @@ module Recommendable
             # Remove this item from the score zset
             zsets << Recommendable::Helpers::RedisKeyMapper.score_set_for(self.class)
 
-            # Remove this item's liked_by/disliked_by sets
-            keys << Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(self.class, id)
-            keys << Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(self.class, id)
+            # Remove this item's gemd_by/disgemd_by sets
+            keys << Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(self.class, id)
+            keys << Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(self.class, id)
 
-            # Remove this item from any user's like/dislike/hidden/bookmark sets
-            %w[liked disliked hidden bookmarked].each do |action|
+            # Remove this item from any user's gem/disgem/hidden/bookmark sets
+            %w[gemd disgemd hidden bookmarked].each do |action|
               sets += Recommendable.redis.keys(Recommendable::Helpers::RedisKeyMapper.send("#{action}_set_for", self.class, '*'))
             end
 

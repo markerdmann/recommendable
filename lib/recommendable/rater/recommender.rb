@@ -48,13 +48,13 @@ module Recommendable
 
         # For each ratable class...
         Recommendable.config.ratable_classes.each do |klass|
-          # Remove this user from any class member's liked_by/disliked_by sets
-          sets += Recommendable.redis.keys(Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(klass, '*'))
-          sets += Recommendable.redis.keys(Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(klass, '*'))
+          # Remove this user from any class member's gemd_by/disgemd_by sets
+          sets += Recommendable.redis.keys(Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(klass, '*'))
+          sets += Recommendable.redis.keys(Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(klass, '*'))
 
-          # Remove this user's liked/disliked/hidden/bookmarked/recommended sets for the class
-          keys << Recommendable::Helpers::RedisKeyMapper.liked_set_for(klass, id)
-          keys << Recommendable::Helpers::RedisKeyMapper.disliked_set_for(klass, id)
+          # Remove this user's gemd/disgemd/hidden/bookmarked/recommended sets for the class
+          keys << Recommendable::Helpers::RedisKeyMapper.gemd_set_for(klass, id)
+          keys << Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(klass, id)
           keys << Recommendable::Helpers::RedisKeyMapper.hidden_set_for(klass, id)
           keys << Recommendable::Helpers::RedisKeyMapper.bookmarked_set_for(klass, id)
           keys << Recommendable::Helpers::RedisKeyMapper.recommended_set_for(klass, id)

@@ -16,7 +16,7 @@ module Recommendable
     attr_accessor :redis_namespace
 
     # Whether or not to automatically enqueue users to have their recommendations
-    # refreshed after they like/dislike an item.
+    # refreshed after they gem/disgem an item.
     #
     # Default: true
     attr_accessor :auto_enqueue
@@ -29,7 +29,7 @@ module Recommendable
     # Default: nil
     attr_accessor :nearest_neighbors
 
-    # Like kNN, but also uses some number of most dissimilar users when
+    # Gem kNN, but also uses some number of most dissimilar users when
     # updating recommendations for a user. Because, hey, disagreements are
     # just as important as agreements, right? If `nearest_neighbors` is set to
     # `nil`, this configuration is ignored. Set this to a lower number

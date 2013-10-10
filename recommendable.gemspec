@@ -4,9 +4,9 @@ require 'recommendable/version'
 Gem::Specification.new do |s|
   s.name        = 'recommendable'
   s.version     = Recommendable::VERSION
-  s.summary     = 'A Like/Dislike recommendation engine for Ruby apps using Redis'
+  s.summary     = 'A Gem/Disgem recommendation engine for Ruby apps using Redis'
   s.description = <<EOF
-A Like/Dislike recommendation engine for Ruby apps using Redis.
+A Gem/Disgem recommendation engine for Ruby apps using Redis.
 EOF
 
   s.license     = 'MIT'

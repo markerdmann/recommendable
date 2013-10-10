@@ -2,12 +2,12 @@ $LOAD_PATH.unshift File.expand_path('../../test', __FILE__)
 require 'test_helper'
 
 class RedisKeyMapperTest < MiniTest::Unit::TestCase
-  def test_output_of_liked_set_for
-    assert_equal Recommendable::Helpers::RedisKeyMapper.liked_set_for(Movie, 1), 'recommendable:users:1:liked_movies'
+  def test_output_of_gemd_set_for
+    assert_equal Recommendable::Helpers::RedisKeyMapper.gemd_set_for(Movie, 1), 'recommendable:users:1:gemd_movies'
   end
 
-  def test_output_of_disliked_set_for
-    assert_equal Recommendable::Helpers::RedisKeyMapper.disliked_set_for(Movie, 1), 'recommendable:users:1:disliked_movies'
+  def test_output_of_disgemd_set_for
+    assert_equal Recommendable::Helpers::RedisKeyMapper.disgemd_set_for(Movie, 1), 'recommendable:users:1:disgemd_movies'
   end
 
   def test_output_of_hidden_set_for
@@ -26,12 +26,12 @@ class RedisKeyMapperTest < MiniTest::Unit::TestCase
     assert_equal Recommendable::Helpers::RedisKeyMapper.similarity_set_for(1), 'recommendable:users:1:similarities'
   end
 
-  def test_output_of_liked_by_set_for
-    assert_equal Recommendable::Helpers::RedisKeyMapper.liked_by_set_for(Movie, 1), 'recommendable:movies:1:liked_by'
+  def test_output_of_gemd_by_set_for
+    assert_equal Recommendable::Helpers::RedisKeyMapper.gemd_by_set_for(Movie, 1), 'recommendable:movies:1:gemd_by'
   end
 
-  def test_output_of_disliked_by_set_for
-    assert_equal Recommendable::Helpers::RedisKeyMapper.disliked_by_set_for(Movie, 1), 'recommendable:movies:1:disliked_by'
+  def test_output_of_disgemd_by_set_for
+    assert_equal Recommendable::Helpers::RedisKeyMapper.disgemd_by_set_for(Movie, 1), 'recommendable:movies:1:disgemd_by'
   end
 
   def test_output_of_score_set_for
